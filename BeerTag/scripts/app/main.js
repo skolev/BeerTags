@@ -52,53 +52,7 @@ var app = (function () {
         jpg  : "image/jpeg",
         jpeg : "image/jpeg"
     };
-    
-    function captureApp() {
-}
-
-captureApp.prototype = {
-    pictureSource:null,
-    
-    destinationType:null,
-    
-    run:function() {
-        var that = this;
-        id("captureImage").addEventListener("click", function() {
-            that._captureImage.apply(that, arguments);
-        });
-    },
-    
-    _captureImage:function() {
-        var that = this;
-        navigator.device.capture.captureImage(function() {
-            that._captureSuccess.apply(that, arguments);
-        }, function() { 
-            captureApp._captureError.apply(that, arguments);
-        }, {limit:1});
-    },
-    
-    _captureSuccess:function(capturedFiles) {
-        //imageToUpload = capturedFiles[0];
-        //var i,
-        //media = document.getElementById("media");
-        //media.innerHTML = "";
-/*        for (i=0;i < capturedFiles.length;i+=1) {
-            media.innerHTML+='<p>Capture taken! Its path is: ' + capturedFiles[i].name + '</p>'
-            media.innerHTML+='<img src="' + capturedFiles[i].fullPath + '"alt="styles/images/avatar.png" width="50%" />'
-        }*/
-    },
-    
-    _captureError:function(error) {
-        if (device.uuid == "e0101010d38bde8e6740011221af335301010333" || device.uuid == "e0908060g38bde8e6740011221af335301010333") {
-            alert(error);
-        }
-        else {
-/*            var media = document.getElementById("media");
-            media.innerHTML = "An error occured! Code:" + error.code;*/
-        }
-    },
-}
-
+ 
     var facebook = new IdentityProvider({
         name: "Facebook",
         loginMethodName: "loginWithFacebook",
@@ -356,8 +310,6 @@ captureApp.prototype = {
 
     // activities view model
     var activitiesViewModel = (function () {
-                captureApp = new captureApp();
-        captureApp.run();
         var activitySelected = function (e) {
             mobileApp.navigate('views/activityView.html?uid=' + e.data.uid);
         };
@@ -391,10 +343,10 @@ captureApp.prototype = {
         // **************************************************
     //           new view model for add picture
     // **************************************************
-    var $newStatus;
+    //var $newStatus;
     //var validator;
   
-    var observable = {
+/*    var observable = {
         picName: '',
         picTitle: '',
         picSelected: false,
@@ -448,7 +400,7 @@ captureApp.prototype = {
                 }
             );          
         }
-    };
+    };*/
     // ***************** END ****************************/
 
     // add activity view model
