@@ -1,10 +1,11 @@
 <div data-role="view" id="share" data-layout="default" data-transition="overlay:down" class="share-view"
-    data-init="app.viewModels.addActivity.init" data-show="app.viewModels.addActivity.show" data-model="app.viewModels.addActivity">
+     data-init="app.viewModels.addActivity.init" data-show="app.viewModels.addActivity.show" data-model="app.viewModels.addActivity">
     <header data-role="header">
         <div data-role="navbar">
             Activity
             <a class="nav-button" data-align="left" data-role="backbutton">Cancel</a>
             <a class="nav-button" data-align="right" data-role="button" data-bind="click: saveActivity">Post</a>
+            <button class="button dh" id="captureImage">Capture Image</button>
         </div>
     </header>
     <div id="enterStatus" class="share-form-wrp">
@@ -15,6 +16,26 @@
         <div class="user-share">
             <textarea id="newStatus" placeholder="What's on your mind?" required validationMessage="Comment text is required!"></textarea>
             <div id="newCommentValidation" class="validation">Comment text is required!</div>
+            <form>
+                <ul data-role="listview" data-style="inset" id="add-image-form">
+                    <li>
+                        <label data-align="left">
+                            Title
+                            <input type="text" id="newTitle" placeholder="Title" required validationMessage="Title is required!" data-bind="value: picTitle"/>
+                        </label>
+                    </li>
+                    <li style="display: none">
+                        <input value="Browse" type="file" data-bind="events: { change: onPicSet }" id="newPicture" />
+                    </li>
+                    <li data-bind="invisible: picSelected">
+                        <a data-bind="click: onAddPic">Browse</a>
+                    </li>
+                    <li id="picName" data-bind="visible: picSelected">
+                        <span data-bind="html: picName"></span>
+                        <a data-role="detailbutton" data-style="rowdelete" data-bind="click: onRemovePic"></a>
+                    </li>
+                </ul>
+            </form>
         </div>
     </div>
 </div>

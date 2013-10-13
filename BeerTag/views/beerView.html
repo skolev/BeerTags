@@ -1,0 +1,30 @@
+<div data-role="view" id="single-activity" data-layout="default" class="activities-view" data-show="app.viewModels.beer.show">
+    <header data-role="header">
+        <div data-role="navbar">
+            Beer Details
+            <a class="nav-button" data-align="left" data-role="backbutton">Back</a>
+        </div>
+    </header>
+
+    <div id="status-container" class="user-status-wrp" data-role="listview" data-style="inset">
+        <img id="picture" data-bind="attr:{src: LabelUrl()}" width="100%"/>
+        <div class="beer-share">
+            <p>
+                <span>Име:</span>
+                <span id="beerName" data-bind="text: Name" class="beer-share-txt" style="font-weight: bold"></span>
+            </p>
+            <p>
+                <span>Алкохол (%):</span>
+                <span id="beerAbv" data-bind="text: Abv" class="beer-share-txt" style="font-weight: bold"></span>
+            </p>
+            <p>
+                <span>Тип:</span>
+                <span id="beerType" data-bind="text: Type" class="beer-share-txt" style="font-weight: bold"></span>
+            </p>
+            <p>
+                <span>Тагнати:</span>
+                <span id="beerCount" data-bind="text: DrinkCount" class="beer-share-txt" style="font-weight: bold"></span>
+            </p>
+        </div>
+    </div>
+</div>

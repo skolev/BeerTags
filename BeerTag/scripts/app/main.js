@@ -1,6 +1,5 @@
 var app = (function () {
     'use strict';
-
     // global error handling
     var showAlert = function(message, title, callback) {
         navigator.notification.alert(message, callback || function () {
@@ -30,9 +29,14 @@ var app = (function () {
     var onDeviceReady = function() {
         //Handle document events
         document.addEventListener("backbutton", onBackKeyDown, false);
+
     };
 
     document.addEventListener("deviceready", onDeviceReady, false);
+    
+    function id(element) {
+    return document.getElementById(element);
+}
 
     var applicationSettings = {
         emptyGuid: '00000000-0000-0000-0000-000000000000',
@@ -43,6 +47,57 @@ var app = (function () {
     var el = new Everlive({
         apiKey: applicationSettings.apiKey
     });
+    //var imageToUpload;
+    var mimeMap = {
+        jpg  : "image/jpeg",
+        jpeg : "image/jpeg"
+    };
+    
+    function captureApp() {
+}
+
+captureApp.prototype = {
+    pictureSource:null,
+    
+    destinationType:null,
+    
+    run:function() {
+        var that = this;
+        id("captureImage").addEventListener("click", function() {
+            that._captureImage.apply(that, arguments);
+        });
+    },
+    
+    _captureImage:function() {
+        var that = this;
+        navigator.device.capture.captureImage(function() {
+            that._captureSuccess.apply(that, arguments);
+        }, function() { 
+            captureApp._captureError.apply(that, arguments);
+        }, {limit:1});
+    },
+    
+    _captureSuccess:function(capturedFiles) {
+        //imageToUpload = capturedFiles[0];
+        //var i,
+        //media = document.getElementById("media");
+        //media.innerHTML = "";
+/*        for (i=0;i < capturedFiles.length;i+=1) {
+            media.innerHTML+='<p>Capture taken! Its path is: ' + capturedFiles[i].name + '</p>'
+            media.innerHTML+='<img src="' + capturedFiles[i].fullPath + '"alt="styles/images/avatar.png" width="50%" />'
+        }*/
+    },
+    
+    _captureError:function(error) {
+        if (device.uuid == "e0101010d38bde8e6740011221af335301010333" || device.uuid == "e0908060g38bde8e6740011221af335301010333") {
+            alert(error);
+        }
+        else {
+/*            var media = document.getElementById("media");
+            media.innerHTML = "An error occured! Code:" + error.code;*/
+        }
+    },
+}
 
     var facebook = new IdentityProvider({
         name: "Facebook",
@@ -71,6 +126,31 @@ var app = (function () {
             }
             else {
                 return '';
+            }
+        },
+        getBase64ImageFromInput : function (input, cb) {
+            var reader = new FileReader();
+            reader.onloadend = function (e) {
+                if (cb)
+                    cb(e.target.result);
+            };
+            reader.readAsDataURL(input);
+        },
+        getImageFileObject: function(input, cb) {
+            var name = input.name;
+            var ext = name.substr(name.lastIndexOf('.') + 1);
+            var mimeType = mimeMap[ext];
+            if(mimeType) {
+                this.getBase64ImageFromInput(input, function(base64) {
+                    var res = {
+                        "Filename"    : name,
+                        "ContentType" : mimeType,              
+                        "base64"      : base64.substr(base64.lastIndexOf('base64,')+7)
+                    }
+                    cb(null, res);
+                });
+            } else {
+                cb("File type not supported: " + ext);    
             }
         },
         formatDate: function (dateString) {
@@ -251,6 +331,7 @@ var app = (function () {
         };
         var activitiesDataSource = new kendo.data.DataSource({
             type: 'everlive',
+            
             schema: {
                 model: activityModel
             },
@@ -275,6 +356,8 @@ var app = (function () {
 
     // activities view model
     var activitiesViewModel = (function () {
+                captureApp = new captureApp();
+        captureApp.run();
         var activitySelected = function (e) {
             mobileApp.navigate('views/activityView.html?uid=' + e.data.uid);
         };
@@ -304,9 +387,73 @@ var app = (function () {
             }
         };
     }());
+    
+        // **************************************************
+    //           new view model for add picture
+    // **************************************************
+    var $newStatus;
+    //var validator;
+  
+    var observable = {
+        picName: '',
+        picTitle: '',
+        picSelected: false,
+        onPicSet: function(e) {
+            this.set('picSelected', true);
+            this.set('picName', e.target.files[0].name);
+        },
+        onRemovePic: function() {
+            this.set("picSelected", false);
+            // reset the file upload selector
+            $newStatus = $newStatus || $("#newPicture");
+            $newStatus.replaceWith($newStatus = $newStatus.clone(true));
+        },
+        onAddPic: function() {
+            $newStatus = $newStatus || $("#newPicture");
+            $newStatus.click();
+        },
+        saveItem: function() {
+            var that = this;
+            $newStatus = $newStatus || $("#newPicture");
+            AppHelper.getImageFileObject(
+                $newPicture[0].files[0],
+                function( err, fileObj ) {
+                    if(err) {
+                        navigator.notification.alert(err);    
+                        return;
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: 'https://api.everlive.com/v1/loMiF9mVeuYhjbVr/Files',
+                        contentType: "application/json",
+                        data: JSON.stringify(fileObj),
+                        error: function(error){
+                            navigator.notification.alert(JSON.stringify(error));
+                        }
+                    }).done(function(data){
+                        var activities = activitiesModel.activities;
+                        var activity = activities.add();
+                        activity.Text = $newStatus.val();
+                        activity.Picture = data.Result.Id;
+                        activity.UserId = usersModel.currentUser.get('data').Id;
+                        activities.one('sync', function () {
+                            mobileApp.navigate('#:back');
+                        });
+                        activities.sync();
+                        
+                        // reset the form
+                        that.set("picSelected", false);
+                        $newStatus.replaceWith($newStatus = $newStatus.clone(true));
+                    });
+                }
+            );          
+        }
+    };
+    // ***************** END ****************************/
 
     // add activity view model
     var addActivityViewModel = (function () {
+
         var $newStatus;
         var validator;
         var init = function () {
@@ -336,13 +483,105 @@ var app = (function () {
             saveActivity: saveActivity
         };
     }());
+        
+    var beersModel = (function () {
+        var beerModel = {
+            id: 'Id',
+            fields: {
+                Name: {
+                    field: 'Name',
+                    defaultValue: ''
+                },
+                DrinkCount: {
+                    field: 'DrinkCount',
+                    defaultValue: '0'
+                },
+                Abv: {
+                    field: 'Abv',
+                    defaultValue: '0'
+                },
+                Type: {
+                    field: 'Type',
+                    defaultValue: ''
+                },
+                Label: {
+                    fields: 'Label',
+                    defaultValue: ''
+                }
+            },
+/*            CreatedAtFormatted: function () {
+                return AppHelper.formatDate(this.get('CreatedAt'));
+            },*/
+            LabelUrl: function () {
+                return AppHelper.resolvePictureUrl(this.get('Label'));
+            },
+/*            User: function () {
+                var userId = this.get('UserId');
+                var user = $.grep(usersModel.users(), function (e) {
+                    return e.Id === userId;
+                })[0];
+                return user ? {
+                    DisplayName: user.DisplayName,
+                    PictureUrl: AppHelper.resolveProfilePictureUrl(user.Picture)
+                } : {
+                    DisplayName: 'Anonymous',
+                    PictureUrl: AppHelper.resolveProfilePictureUrl()
+                };
+            }*/
+        };
+        var beersDataSource = new kendo.data.DataSource({
+            type: 'everlive',
+            schema: {
+                model: beerModel
+            },
+            transport: {
+                // required by Everlive
+                typeName: 'Beers'
+            },
+            change: function (e) {
+                if (e.items && e.items.length > 0) {
+                    $('#no-activities-span').hide();
+                }
+                else {
+                    $('#no-activities-span').show();
+                }
+            },
+            sort: { field: 'Name', dir: 'asc'},
+            group: { field: 'Type'}
+        });
+        return {
+            beers: beersDataSource
+        };
+    }());
+    
+    var beersViewModel = (function () {
+                var beerSelected = function (e) {
+            mobileApp.navigate('views/beerView.html?uid=' + e.data.uid);
+        };
+        return {
+            beers: beersModel.beers,
+            beerSelected: beerSelected,
+        };
+    }());
+    
+    var beerViewModel = (function () {
+        return {
+            show: function (e) {
+                var beer = beersModel.beers.getByUid(e.view.params.uid);
+                kendo.bind(e.view.element, beer, kendo.mobile.ui);
+            }
+        };
+    }());
+    
 
     return {
         viewModels: {
             login: loginViewModel,
             signup: singupViewModel,
             activities: activitiesViewModel,
+            beers: beersViewModel,
             activity: activityViewModel,
+            beer: beerViewModel,
             addActivity: addActivityViewModel
         }
     };
