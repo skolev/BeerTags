@@ -1,5 +1,8 @@
 var app = (function () {
     'use strict';
+    var longitude = -80;
+    var latitude = 43;
+    var heading = 0;
     // global error handling
     var showAlert = function(message, title, callback) {
         navigator.notification.alert(message, callback || function () {
@@ -29,14 +32,52 @@ var app = (function () {
     var onDeviceReady = function() {
         //Handle document events
         document.addEventListener("backbutton", onBackKeyDown, false);
-
+        Geo.location();
+        checkConnection();
     };
-
+    
     document.addEventListener("deviceready", onDeviceReady, false);
     
+    function checkConnection() {
+        var networkState = navigator.connection.type;
+
+        var states = {};
+        states[Connection.UNKNOWN] = 'Unknown connection';
+        states[Connection.ETHERNET] = 'Ethernet connection';
+        states[Connection.WIFI] = 'WiFi connection';
+        states[Connection.CELL_2G] = 'Cell 2G connection';
+        states[Connection.CELL_3G] = 'Cell 3G connection';
+        states[Connection.CELL_4G] = 'Cell 4G connection';
+        states[Connection.NONE] = 'No network connection';
+        if (networkState == Connection.NONE) {
+            alert('Connection type: ' + states[networkState]);
+        }
+    };
+    
+    var Geo = {
+        onSuccess : function (position) {
+            longitude = parseFloat(position.coords.longitude);
+            latitude = parseFloat(position.coords.latitude);
+            heading = position.coords.heading;
+        },
+
+        // onError Callback receives a PositionError object
+        //
+        onError : function (error) {
+            alert('code: ' + error.code + '\n' +
+                  'message: ' + error.message + '\n');
+        },
+
+        // Options: throw an error if no update is received every 30 seconds.
+        //
+        location : function() {
+            navigator.geolocation.getCurrentPosition(this.onSuccess, this.onError, {enableHighAccuracy: true});
+        }
+    };
+
     function id(element) {
-    return document.getElementById(element);
-}
+        return document.getElementById(element);
+    }
 
     var applicationSettings = {
         emptyGuid: '00000000-0000-0000-0000-000000000000',
@@ -50,7 +91,8 @@ var app = (function () {
     //var imageToUpload;
     var mimeMap = {
         jpg  : "image/jpeg",
-        jpeg : "image/jpeg"
+        jpeg : "image/jpeg",
+        png : "image/png"
     };
  
     var facebook = new IdentityProvider({
@@ -75,7 +117,7 @@ var app = (function () {
             }
         },
         resolvePictureUrl: function (id) {
-            if (id && id !== applicationSettings.emptyGuid) {
+            if (id) {
                 return el.Files.getDownloadUrl(id);
             }
             else {
@@ -85,6 +127,7 @@ var app = (function () {
         getBase64ImageFromInput : function (input, cb) {
             var reader = new FileReader();
             reader.onloadend = function (e) {
+                alert("read success");
                 if (cb)
                     cb(e.target.result);
             };
@@ -94,16 +137,17 @@ var app = (function () {
             var name = input.name;
             var ext = name.substr(name.lastIndexOf('.') + 1);
             var mimeType = mimeMap[ext];
-            if(mimeType) {
+            if (mimeType) {
                 this.getBase64ImageFromInput(input, function(base64) {
                     var res = {
                         "Filename"    : name,
                         "ContentType" : mimeType,              
-                        "base64"      : base64.substr(base64.lastIndexOf('base64,')+7)
+                        "base64"      : base64.substr(base64.lastIndexOf('base64,') + 7)
                     }
                     cb(null, res);
                 });
-            } else {
+            }
+            else {
                 cb("File type not supported: " + ext);    
             }
         },
@@ -258,9 +302,9 @@ var app = (function () {
                     field: 'UserId',
                     defaultValue: ''
                 },
-                Likes: {
-                    field: 'Likes',
-                    defaultValue: []
+                Location: {
+                    field: 'Location',
+                    defaultValue: ''
                 }
             },
             CreatedAtFormatted: function () {
@@ -336,103 +380,112 @@ var app = (function () {
             show: function (e) {
                 var activity = activitiesModel.activities.getByUid(e.view.params.uid);
                 kendo.bind(e.view.element, activity, kendo.mobile.ui);
+                var mapsBaseUrl = "http://maps.googleapis.com/maps/api/staticmap";
+                var centerPar = "center=" + activity.Location["latitude"] + "," + activity.Location["longitude"];
+                var sizePar = "size=290x250";
+
+                var locationViz = document.getElementById("location-viz");
+                locationViz.src = mapsBaseUrl + "?" + centerPar + "&" + sizePar + "&" + "&sensor=true&zoom=14";
+                //locationViz.style.webkitTransform = "rotate(" + (-heading | 0) + "deg)";
             }
         };
     }());
     
-        // **************************************************
-    //           new view model for add picture
-    // **************************************************
-    //var $newStatus;
-    //var validator;
-  
-/*    var observable = {
-        picName: '',
-        picTitle: '',
-        picSelected: false,
-        onPicSet: function(e) {
-            this.set('picSelected', true);
-            this.set('picName', e.target.files[0].name);
-        },
-        onRemovePic: function() {
-            this.set("picSelected", false);
-            // reset the file upload selector
-            $newStatus = $newStatus || $("#newPicture");
-            $newStatus.replaceWith($newStatus = $newStatus.clone(true));
-        },
-        onAddPic: function() {
-            $newStatus = $newStatus || $("#newPicture");
-            $newStatus.click();
-        },
-        saveItem: function() {
-            var that = this;
-            $newStatus = $newStatus || $("#newPicture");
-            AppHelper.getImageFileObject(
-                $newPicture[0].files[0],
-                function( err, fileObj ) {
-                    if(err) {
-                        navigator.notification.alert(err);    
-                        return;
-                    }
-                    $.ajax({
-                        type: "POST",
-                        url: 'https://api.everlive.com/v1/loMiF9mVeuYhjbVr/Files',
-                        contentType: "application/json",
-                        data: JSON.stringify(fileObj),
-                        error: function(error){
-                            navigator.notification.alert(JSON.stringify(error));
-                        }
-                    }).done(function(data){
-                        var activities = activitiesModel.activities;
-                        var activity = activities.add();
-                        activity.Text = $newStatus.val();
-                        activity.Picture = data.Result.Id;
-                        activity.UserId = usersModel.currentUser.get('data').Id;
-                        activities.one('sync', function () {
-                            mobileApp.navigate('#:back');
-                        });
-                        activities.sync();
-                        
-                        // reset the form
-                        that.set("picSelected", false);
-                        $newStatus.replaceWith($newStatus = $newStatus.clone(true));
-                    });
-                }
-            );          
-        }
-    };*/
-    // ***************** END ****************************/
-
     // add activity view model
     var addActivityViewModel = (function () {
-
         var $newStatus;
         var validator;
+        var media;
+        //var imageFile;
+        // capture callback
+        var captureSuccess = function(mediaFiles) {
+            var i, len;
+            for (i = 0, len = mediaFiles.length; i < len; i += 1) {
+                media.innerHTML+= mediaFiles[i].name;
+                imageFile = mediaFiles[i];
+            }
+        };
+
+        // capture error callback
+        var captureError = function(error) {
+            if (device.uuid == "e0101010d38bde8e6740011221af335301010333" || device.uuid == "e0908060g38bde8e6740011221af335301010333") {
+                alert(error);
+            }
+            else {
+                navigator.notification.alert('Error code: ' + error.code, null, 'Capture Error');
+            }
+        };
+
+        // start image capture
+        var captureImage = function() {
+            navigator.device.capture.captureImage(captureSuccess, captureError, {limit:1});
+        };
+        
         var init = function () {
             validator = $('#enterStatus').kendoValidator().data("kendoValidator");
             $newStatus = $('#newStatus');
+            var mapsBaseUrl = "http://maps.googleapis.com/maps/api/staticmap";
+            var centerPar = "center=" + latitude + "," + longitude;
+            var sizePar = "size=290x250";
+
+            var locationViz = document.getElementById("location-viz");
+            locationViz.src = mapsBaseUrl + "?" + centerPar + "&" + sizePar + "&" + "&sensor=true&zoom=14";
+            //locationViz.style.webkitTransform = "rotate(" + (-heading | 0) + "deg)";
         };
         var show = function () {
             $newStatus.val('');
             validator.hideMessages();
         };
+        
         var saveActivity = function () {
             if (validator.validate()) {
-                var activities = activitiesModel.activities;
-                var activity = activities.add();
-                activity.Text = $newStatus.val();
-                activity.UserId = usersModel.currentUser.get('data').Id;
-                activities.one('sync', function () {
-                    mobileApp.navigate('#:back');
-                });
-                activities.sync();
+            var activities = activitiesModel.activities;
+            var activity = activities.add();
+            activity.Text = $newStatus.val();
+            activity.UserId = usersModel.currentUser.get('data').Id;
+            activity.Location = new Everlive.GeoPoint(longitude, latitude);
+            activities.one('sync', function () {
+            mobileApp.navigate('#:back');
+            });
+            activities.sync();
             }
+            /*AppHelper.getImageFileObject(
+                imageFile,
+                function(err, fileObj) {
+                    if (err) {
+                        navigator.notification.alert(err);    
+                        return;
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: 'https://api.everlive.com/v1/wEx9wdnIcxxehNty/Files',
+                        contentType: "application/json",
+                        data: JSON.stringify(fileObj),
+                        error: function(error) {
+                            navigator.notification.alert(JSON.stringify(error));
+                        }
+                    }).done(function(data) {
+                        var activities = activitiesModel.activities;
+                        var activity = activities.add();
+                        activity.Text = $newStatus.val();
+                        activity.UserId = usersModel.currentUser.get('data').Id;
+                        activity.Location = new Everlive.GeoPoint(longitude, latitude);
+                        activities.one('sync', function () {
+                            mobileApp.navigate('#:back');
+                        });
+                        activities.sync();
+                        // reset the form
+                        //that.set("picSelected", false);
+                        //$newPicture.replaceWith($newPicture = $newPicture.clone(true));
+                    });
+                });*/ 
         };
         return {
             init: init,
             show: show,
             me: usersModel.currentUser,
-            saveActivity: saveActivity
+            saveActivity: saveActivity,
+            captureImage: captureImage
         };
     }());
         
@@ -461,25 +514,9 @@ var app = (function () {
                     defaultValue: ''
                 }
             },
-/*            CreatedAtFormatted: function () {
-                return AppHelper.formatDate(this.get('CreatedAt'));
-            },*/
             LabelUrl: function () {
                 return AppHelper.resolvePictureUrl(this.get('Label'));
-            },
-/*            User: function () {
-                var userId = this.get('UserId');
-                var user = $.grep(usersModel.users(), function (e) {
-                    return e.Id === userId;
-                })[0];
-                return user ? {
-                    DisplayName: user.DisplayName,
-                    PictureUrl: AppHelper.resolveProfilePictureUrl(user.Picture)
-                } : {
-                    DisplayName: 'Anonymous',
-                    PictureUrl: AppHelper.resolveProfilePictureUrl()
-                };
-            }*/
+            }
         };
         var beersDataSource = new kendo.data.DataSource({
             type: 'everlive',
@@ -507,7 +544,7 @@ var app = (function () {
     }());
     
     var beersViewModel = (function () {
-                var beerSelected = function (e) {
+        var beerSelected = function (e) {
             mobileApp.navigate('views/beerView.html?uid=' + e.data.uid);
         };
         return {
@@ -524,7 +561,6 @@ var app = (function () {
             }
         };
     }());
-    
 
     return {
         viewModels: {

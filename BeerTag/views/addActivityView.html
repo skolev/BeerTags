@@ -2,7 +2,7 @@
      data-init="app.viewModels.addActivity.init" data-show="app.viewModels.addActivity.show" data-model="app.viewModels.addActivity">
     <header data-role="header">
         <div data-role="navbar">
-            Activity
+            Add Tag
             <a class="nav-button" data-align="left" data-role="backbutton">Cancel</a>
             <a class="nav-button" data-align="right" data-role="button" data-bind="click: saveActivity">Post</a>
         </div>
@@ -14,7 +14,12 @@
         </div>
         <div class="user-share">
             <textarea id="newStatus" placeholder="What's on your mind?" required validationMessage="Comment text is required!"></textarea>
+            <p id="imagePath"></p>
             <div id="newCommentValidation" class="validation">Comment text is required!</div>
+            <img id="location-viz" width="290" height="250" src="#" alt="Google Static Map" />
+            <a class="nav-button" data-align="right" data-role="button" data-bind="click: captureImage">Pic</a>
+     <!--       <div id="media"></div>
+            <input style="display: none" value="Browse" type="file" id="newPicture" />
             <form>
                 <ul data-role="listview" data-style="inset" id="add-image-form">
                     <li>
@@ -34,7 +39,7 @@
                         <a data-role="detailbutton" data-style="rowdelete" data-bind="click: onRemovePic"></a>
                     </li>
                 </ul>
-            </form>
+            </form>-->
         </div>
     </div>
 </div>

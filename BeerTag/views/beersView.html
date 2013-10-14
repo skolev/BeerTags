@@ -2,10 +2,11 @@
     <header data-role="header">
         <div data-role="navbar">
             Beers
+            <a class="nav-button" data-align="left" data-role="backbutton">Back</a>
         </div>
     </header>
 
-    <ul id="activities-listview" data-style="inset" data-role="listview" data-template="activityTemplate"
+    <ul id="activities-listview" data-style="inset" data-role="listview" data-template="beersTemplate"
         data-bind="source: beers"></ul>
     <p id="no-activities-span" hidden="hidden" class="no-items-msg">
         <b>You have no posts yet.</b><br /><br />Tap on the plus sign and share what's on your mind.
@@ -13,7 +14,7 @@
 </div>
 
 <!-- Activities ListView Template -->
-<script type="text/x-kendo-template" id="activityTemplate">
+<script type="text/x-kendo-template" id="beersTemplate">
     <div data-role="touch" data-bind="events: { tap: beerSelected }">
         <div>
             <h2>${Name}</h2>
